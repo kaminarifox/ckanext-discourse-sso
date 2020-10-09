@@ -18,8 +18,8 @@ if sso_secret is None:
                     "CKAN_DISCOURSE_SSO_SECRET must be set")
 
 discourse_url = config.get('discourse.url')
-discourse_url = os.environ.get('CKAN_DISCOURSE_URL', sso_secret)
-if sso_secret is None:
+discourse_url = os.environ.get('CKAN_DISCOURSE_URL', discourse_url)
+if discourse_url is None:
     raise Exception("Config 'discourse.url' or environment variable "
                     "CKAN_DISCOURSE_URL must be set")
 
