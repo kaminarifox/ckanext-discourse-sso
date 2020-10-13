@@ -23,6 +23,11 @@ if discourse_url is None:
     raise Exception("Config 'discourse.url' or environment variable "
                     "CKAN_DISCOURSE_URL must be set")
 
+portal_url = config.get('portal.url')
+portal_url = os.environ.get('CKAN_PORTAL_URL', portal_url)
+if portal_url is None:
+    raise Exception("Config 'portal.url' or environment variable "
+                    "CKAN_PORTAL_URL must be set")
 
 class DiscourseSSOPlugin(p.SingletonPlugin):
 
@@ -33,14 +38,19 @@ class DiscourseSSOPlugin(p.SingletonPlugin):
         map_.connect(
             '/discourse/sso',
             controller='ckanext.discourse_sso.plugin:SSOController',
-            action='sso')
+            action='discourse_sso')
+
+        map_.connect(
+            '/portal/sso',
+            controller='ckanext.discourse_sso.plugin:SSOController',
+            action='portal_sso')
 
         return map_
 
 
 class SSOController(p.toolkit.BaseController):
 
-    def sso(self):
+    def discourse_sso(self):
         if not c.user:
             redirect_to(controller='user',
                         action='login', came_from=request.url)
@@ -56,6 +66,27 @@ class SSOController(p.toolkit.BaseController):
         })
 
         return_endpoint = urljoin(discourse_url, '/session/sso_login')
+        redirect_to(return_endpoint + "?" + query_string)
+
+    def portal_sso(self):
+        action = request.params.get('action') or 'login'
+        if not c.user:
+            redirect_to(controller='user',
+                        action=action, came_from=request.url)
+
+        if not signature_is_valid(request):
+            raise Exception('Incorrect Discourse SSO Signature to CKAN')
+
+        payload_b64 = make_payload(request, c.userobj)
+        signature_hash = sign(payload_b64)
+        came_from = request.params.get('came_from')
+
+        query_string = urlencode({
+            'sso': payload_b64,
+            'sig': signature_hash.hexdigest(),
+        })
+
+        return_endpoint = urljoin(portal_url, came_from)
         redirect_to(return_endpoint + "?" + query_string)
 
 
