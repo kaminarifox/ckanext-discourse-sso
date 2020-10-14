@@ -1,3 +1,4 @@
+# encoding: utf-8
 from base64 import b64decode, b64encode
 from ckan.plugins.toolkit import c, redirect_to, request, config
 from urllib import urlencode
@@ -53,7 +54,7 @@ class SSOController(p.toolkit.BaseController):
     def discourse_sso(self):
         if not c.user:
             redirect_to(controller='user',
-                        action='login', came_from=request.url)
+                        action='login', came_from=request.url, sso_link=request.params.get('sso_link'))
 
         if not signature_is_valid(request):
             raise Exception('Incorrect Discourse SSO Signature to CKAN')
@@ -69,24 +70,23 @@ class SSOController(p.toolkit.BaseController):
         redirect_to(return_endpoint + "?" + query_string)
 
     def portal_sso(self):
-        action = request.params.get('action') or 'login'
         if not c.user:
             redirect_to(controller='user',
-                        action=action, came_from=request.url)
+                        action='login', came_from=request.url)
 
         if not signature_is_valid(request):
             raise Exception('Incorrect Discourse SSO Signature to CKAN')
 
         payload_b64 = make_payload(request, c.userobj)
         signature_hash = sign(payload_b64)
-        came_from = request.params.get('came_from')
+        return_to = request.params.get('return_to') or ''
 
         query_string = urlencode({
             'sso': payload_b64,
             'sig': signature_hash.hexdigest(),
         })
 
-        return_endpoint = urljoin(portal_url, came_from)
+        return_endpoint = urljoin(portal_url, return_to)
         redirect_to(return_endpoint + "?" + query_string)
 
 
