@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# encoding: utf-8
+
 from base64 import b64decode, b64encode
 from ckan.plugins.toolkit import c, redirect_to, request, config
 from urllib import urlencode
@@ -118,7 +119,7 @@ def make_payload(payload_b64, userobj):
         'email': userobj.email,
         'external_id': userobj.id,
         'username': userobj.name,
-        'name': userobj.fullname,
+        'name': userobj.fullname.encode('utf-8'),
         'bio': userobj.about,
         'require_activation': 'true',
     }))
